@@ -1,0 +1,6 @@
+{
+  "name": "Maria AI",
+  "description": "Android AI agent that controls your phone with voice commands, codes websites & apps live, and automates real-world tasks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
