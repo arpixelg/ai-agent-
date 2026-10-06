@@ -33,8 +33,9 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Restore Debug Keystore & Environment
+      - name: Make Gradlew Executable & Restore Environment
         run: |
+          chmod +x gradlew
           if [ -f debug.keystore.base64 ]; then
             base64 -d debug.keystore.base64 > debug.keystore
             echo "Restored debug.keystore successfully"
@@ -45,7 +46,7 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon -Djava.awt.headless=true --stacktrace
+        run: ./gradlew :app:assembleDebug --no-daemon -Djava.awt.headless=true --no-configuration-cache --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
