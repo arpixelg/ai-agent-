@@ -171,90 +171,169 @@ class GeminiService {
 
     private fun executeLocalRuleAgent(prompt: String, notice: String? = null): AgentResponse {
         val lower = prompt.lowercase().trim()
-
         val prefixNotice = if (notice != null) "[$notice]\n\n" else ""
 
-        // Torch/Flashlight
-        if (lower.contains("flashlight") || lower.contains("torch")) {
-            return if (lower.contains("off") || lower.contains("stop")) {
+        // 1. General conversational greetings / "Kaam karoge"
+        val isGreetingOrAskingForWork = lower.contains("kam karoge") ||
+                lower.contains("kaam karoge") ||
+                lower.contains("kaam karo") ||
+                lower.contains("kam karo") ||
+                lower.contains("kuch karoge") ||
+                lower.contains("kya kar sakti") ||
+                lower.contains("kya kar sakte") ||
+                lower.contains("kya karti ho") ||
+                lower.contains("kya karta hai") ||
+                lower.contains("mera ek kaam") ||
+                lower.contains("mere ek kam") ||
+                lower.contains("help karo") ||
+                lower.contains("madad") ||
+                lower.contains("suno") ||
+                lower.contains("kaise ho") ||
+                lower.contains("kya haal")
+
+        if (isGreetingOrAskingForWork) {
+            return AgentResponse(
+                text = "${prefixNotice}Haan bilkul bhai! Main aapke phone ko full control kar sakti hu. Main yeh sab kar sakti hu:\n\n" +
+                        "⚡ Flashlight on/off karna (bolo: 'torch jalao' ya 'torch band karo')\n" +
+                        "📥 Google Play Store se koi bhi app download karna (bolo: 'download instagram')\n" +
+                        "🚀 Apps open karna (bolo: 'youtube kholo' ya 'camera kholo')\n" +
+                        "🔊 Volume control (bolo: 'aawaz badhao' ya 'mute karo')\n" +
+                        "💻 Code Studio me live interactive website/game banana (bolo: 'game banao' ya 'website banao')\n" +
+                        "🔋 Live battery aur phone specs batana\n\n" +
+                        "Bataiye, abhi kya karwana chahte hain?"
+            )
+        }
+
+        // 2. Flashlight / Torch (Hindi, Hinglish, English)
+        val hasTorchWord = lower.contains("torch") || lower.contains("flashlight") || lower.contains("light") || lower.contains("batti") || lower.contains("roshni")
+        val isTurnOff = lower.contains("off") || lower.contains("band") || lower.contains("bujha") || lower.contains("stop")
+        val isTurnOn = lower.contains("on") || lower.contains("chalu") || lower.contains("jala") || lower.contains("start") || lower.contains("khol")
+
+        if (hasTorchWord) {
+            return if (isTurnOff) {
                 AgentResponse(
-                    text = "${prefixNotice}Flashlight has been turned OFF.",
+                    text = "${prefixNotice}Flashlight band kar di gayi hai.",
                     actionTag = "TORCH_OFF"
                 )
             } else {
                 AgentResponse(
-                    text = "${prefixNotice}Flashlight turned ON! Glowing at maximum brightness.",
+                    text = "${prefixNotice}Flashlight on kar di hai! Camera torch chalu ho gayi hai.",
                     actionTag = "TORCH_ON"
                 )
             }
         }
 
-        // Download / Install app
-        if (lower.contains("download") || lower.contains("install")) {
+        // 3. Download / Install Apps from Play Store (Hindi, Hinglish, English)
+        val isDownloadIntent = lower.contains("download") || lower.contains("install") || lower.contains("daalo") || lower.contains("dalo") || lower.contains("karo download")
+        if (isDownloadIntent) {
             val app = extractTargetApp(lower)
             return AgentResponse(
-                text = "${prefixNotice}Opening Google Play Store to install $app right away.",
+                text = "${prefixNotice}Google Play Store khol rahi hu $app install karne ke liye!",
                 actionTag = "DOWNLOAD_APP",
                 actionArg = app
             )
         }
 
-        // Open / Launch app
-        if (lower.startsWith("open ") || lower.contains("launch ") || lower.contains("start ")) {
-            val app = extractTargetApp(lower)
+        // 4. Open / Launch Apps (Hindi, Hinglish, English)
+        val isOpenIntent = lower.contains("kholo") ||
+                lower.contains("chalao") ||
+                lower.contains("start") ||
+                lower.contains("launch") ||
+                lower.contains("open") ||
+                lower.startsWith("khol ")
+
+        val identifiedApp = findSpecificAppInQuery(lower)
+        if (isOpenIntent && identifiedApp != null) {
             return AgentResponse(
-                text = "${prefixNotice}Launching $app on your device.",
+                text = "${prefixNotice}Aapke phone me $identifiedApp launch kar rahi hu.",
                 actionTag = "LAUNCH_APP",
-                actionArg = app
+                actionArg = identifiedApp
             )
         }
 
-        // Volume control
-        if (lower.contains("volume") || lower.contains("mute") || lower.contains("sound")) {
+        // 5. Volume Controls (Hindi, Hinglish, English)
+        val hasVolumeWord = lower.contains("volume") || lower.contains("aawaz") || lower.contains("awaz") || lower.contains("sound") || lower.contains("mute")
+        if (hasVolumeWord) {
             return when {
-                lower.contains("mute") -> AgentResponse("${prefixNotice}Media volume muted to 0%.", "MUTE")
-                lower.contains("max") || lower.contains("100") -> AgentResponse("${prefixNotice}Volume set to maximum (100%).", "VOLUME_SET", "100")
-                lower.contains("up") || lower.contains("increase") -> AgentResponse("${prefixNotice}Media volume increased.", "VOLUME_UP")
-                lower.contains("down") || lower.contains("decrease") -> AgentResponse("${prefixNotice}Media volume lowered.", "VOLUME_DOWN")
-                else -> AgentResponse("${prefixNotice}Adjusted media volume to 75%.", "VOLUME_SET", "75")
+                lower.contains("mute") || lower.contains("chup") || lower.contains("silent") || lower.contains("band") ->
+                    AgentResponse("${prefixNotice}Media volume mute kar diya gaya hai (0%).", "MUTE")
+                lower.contains("max") || lower.contains("100") || lower.contains("full") || lower.contains("tez") ->
+                    AgentResponse("${prefixNotice}Media volume maximum 100% par set kar diya hai.", "VOLUME_SET", "100")
+                lower.contains("up") || lower.contains("badha") || lower.contains("bada") || lower.contains("increase") ->
+                    AgentResponse("${prefixNotice}Media volume badha diya gaya hai.", "VOLUME_UP")
+                lower.contains("down") || lower.contains("kam") || lower.contains("dheemi") || lower.contains("decrease") ->
+                    AgentResponse("${prefixNotice}Media volume kam kar diya gaya hai.", "VOLUME_DOWN")
+                else -> AgentResponse("${prefixNotice}Media volume 75% par adjust kar diya hai.", "VOLUME_SET", "75")
             }
         }
 
-        // Battery / Telemetry
-        if (lower.contains("battery") || lower.contains("ram") || lower.contains("storage") || lower.contains("specs") || lower.contains("device info")) {
+        // 6. Battery & Phone Status (Hindi, Hinglish, English)
+        val isBatteryQuery = lower.contains("battery") ||
+                lower.contains("ram") ||
+                lower.contains("storage") ||
+                lower.contains("specs") ||
+                lower.contains("device info") ||
+                lower.contains("charge") ||
+                lower.contains("kitna charge") ||
+                lower.contains("kitni battery") ||
+                lower.contains("phone status") ||
+                lower.contains("phone ki halat")
+
+        if (isBatteryQuery) {
             return AgentResponse(
-                text = "${prefixNotice}Here are your real-time phone diagnostics. Check the Device Status cards below for live battery temperature, charging health, and RAM usage.",
+                text = "${prefixNotice}Phone diagnostics update ho gaye hain! Niche Controls tab me aap live battery percentage, temperature aur RAM usage dekh sakte hain.",
                 actionTag = "REFRESH_TELEMETRY"
             )
         }
 
-        // Code Generation
-        if (lower.contains("website") || lower.contains("code") || lower.contains("game") || lower.contains("portfolio") || lower.contains("app") || lower.contains("html") || lower.contains("fix")) {
+        // 7. Code Generation & Web Sandbox (Hindi, Hinglish, English)
+        val isCodeQuery = lower.contains("website") ||
+                lower.contains("code") ||
+                lower.contains("game") ||
+                lower.contains("portfolio") ||
+                lower.contains("app") ||
+                lower.contains("html") ||
+                lower.contains("calculator") ||
+                lower.contains("fix") ||
+                lower.contains("banao") ||
+                lower.contains("bana do") ||
+                lower.contains("banado")
+
+        if (isCodeQuery) {
             val generatedApp = generateWebCodeTemplate(lower)
             return AgentResponse(
-                text = "${prefixNotice}I've generated the complete application code for you! You can run it live in the interactive Code Studio preview, or test it directly below.",
+                text = "${prefixNotice}Maine aapke liye complete application code generate kar diya hai! Niche 'Run Live in Code Studio' button par tap karein aur ise direct phone me play/test karein.",
                 actionTag = "CODE_GEN",
                 extractedCode = generatedApp
             )
         }
 
-        // Market Insights
-        if (lower.contains("market") || lower.contains("crypto") || lower.contains("bitcoin") || lower.contains("btc") || lower.contains("stock") || lower.contains("eth")) {
+        // 8. Market Insights (Hindi, Hinglish, English)
+        val isMarketQuery = lower.contains("market") || lower.contains("crypto") || lower.contains("bitcoin") || lower.contains("btc") || lower.contains("stock") || lower.contains("eth") || lower.contains("share") || lower.contains("bhav")
+        if (isMarketQuery) {
             return AgentResponse(
-                text = "${prefixNotice}📊 Market Intelligence Overview:\n- Bitcoin (BTC): Steady bullish momentum trading around \$96,400 with high institutional ETF volume.\n- Ethereum (ETH): Consolidation near \$3,450 with strong DeFi staking yield.\n- Tech Indices: NASDAQ & S&P 500 hovering near all-time highs powered by AI infrastructure demand.\nCheck the Market Insights tab for interactive live trackers!",
+                text = "${prefixNotice}📊 Live Market Overview:\n• Bitcoin (BTC): \$96,400 ke aas-paas trade kar raha hai aur strong bullish trend me hai.\n• Ethereum (ETH): \$3,450 par consolidate ho raha hai.\n• Tech Indices: NASDAQ aur S&P 500 AI rally ki badaulat all-time high ke kareeb hain.\nMarkets tab me interactive chart tracker dekhein!",
                 actionTag = "MARKET_CHECK"
             )
         }
 
-        // Timer
+        // 9. Timer
         if (lower.contains("timer") || lower.contains("alarm")) {
-            return AgentResponse("${prefixNotice}Starting a 5-minute countdown timer on your phone.", "SET_TIMER", "300")
+            return AgentResponse("${prefixNotice}Phone par 5 minute ka timer start kar diya hai.", "SET_TIMER", "300")
         }
 
-        // General AI Assistant response
+        // Default conversational response in natural Hindi/Hinglish
         return AgentResponse(
-            text = "${prefixNotice}Hello! I am Maria, your autonomous Android AI assistant. I can control your phone hardware (flashlight, volume, apps), install new apps from Google Play, write full-stack code and execute it live in my Code Studio, analyze market trends, and inspect screens. How can I help you right now?"
+            text = "${prefixNotice}Haan ji! Main Maria hu, aapki phone controller AI. Main aapki torch jala/bujha sakti hu, volume adjust kar sakti hu, Instagram/WhatsApp khol sakti hu ya Play Store se download kar sakti hu, aur Code Studio me game ya website bana sakti hu. Aap bataiye kya karu?"
         )
+    }
+
+    private fun findSpecificAppInQuery(query: String): String? {
+        val targets = listOf("instagram", "whatsapp", "youtube", "chrome", "spotify", "telegram", "camera", "maps", "calculator", "netflix", "twitter")
+        for (target in targets) {
+            if (query.contains(target)) return target
+        }
+        return null
     }
 
     private fun extractTargetApp(query: String): String {

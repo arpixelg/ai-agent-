@@ -128,13 +128,14 @@ fun AgentScreen(
     }
 
     val quickCommands = listOf(
-        "⚡ Turn on flashlight",
+        "⚡ Torch jalao",
         "📥 Download Instagram",
-        "🎮 Build a neon mini game",
-        "💼 Code a modern portfolio",
-        "📊 Analyze Bitcoin market",
-        "🔋 Battery & specs report",
-        "🔊 Max volume"
+        "🎮 Game banao",
+        "💼 Website banao",
+        "🔋 Battery kitni hai",
+        "🔊 Aawaz full karo",
+        "💡 Torch band karo",
+        "📊 Crypto market bhav"
     )
 
     Column(
@@ -355,8 +356,8 @@ fun AgentScreen(
                     onValueChange = { inputPrompt = it },
                     placeholder = {
                         Text(
-                            text = if (isListening) "Listening..." else "Ask Maria to code or control phone...",
-                            fontSize = 13.sp,
+                            text = if (isListening) "Listening..." else "Bolo ya type karo: 'torch jalao', 'game banao'...",
+                            fontSize = 12.sp,
                             color = TextSecondary
                         )
                     },

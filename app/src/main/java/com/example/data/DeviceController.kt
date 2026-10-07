@@ -34,6 +34,16 @@ class DeviceController(private val context: Context) {
         "chrome" to "com.android.chrome",
         "spotify" to "com.spotify.music",
         "telegram" to "org.telegram.messenger",
+        "facebook" to "com.facebook.katana",
+        "snapchat" to "com.snapchat.android",
+        "free fire" to "com.dts.freefireth",
+        "freefire" to "com.dts.freefireth",
+        "bgmi" to "com.pubg.imobile",
+        "pubg" to "com.pubg.imobile",
+        "termux" to "com.termux",
+        "paytm" to "net.one97.paytm",
+        "phonepe" to "com.phonepe.app",
+        "gpay" to "com.google.android.apps.nbu.paisa.user",
         "twitter" to "com.twitter.android",
         "x" to "com.twitter.android",
         "netflix" to "com.netflix.mediaclient",
@@ -156,8 +166,14 @@ class DeviceController(private val context: Context) {
     }
 
     fun downloadOrOpenPlayStore(packageName: String, displayName: String = packageName): AgentExecutionResult {
-        val target = popularPackages[displayName.lowercase()] ?: packageName
-        val marketUri = Uri.parse("market://details?id=$target")
+        val query = displayName.trim()
+        val mappedPackage = popularPackages[query.lowercase()] ?: if (packageName.contains(".")) packageName else null
+        
+        val marketUri = if (mappedPackage != null) {
+            Uri.parse("market://details?id=$mappedPackage")
+        } else {
+            Uri.parse("market://search?q=" + Uri.encode(query))
+        }
         val marketIntent = Intent(Intent.ACTION_VIEW, marketUri).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -167,11 +183,14 @@ class DeviceController(private val context: Context) {
             AgentExecutionResult(
                 actionName = "DOWNLOAD_APP",
                 isSuccess = true,
-                message = "Opening Google Play Store to install $displayName ($target)"
+                message = "Opening Google Play Store for $displayName"
             )
         } catch (e: Exception) {
-            // Fallback to browser Play Store link
-            val webUri = Uri.parse("https://play.google.com/store/apps/details?id=$target")
+            val webUri = if (mappedPackage != null) {
+                Uri.parse("https://play.google.com/store/apps/details?id=$mappedPackage")
+            } else {
+                Uri.parse("https://play.google.com/store/search?q=" + Uri.encode(query) + "&c=apps")
+            }
             val webIntent = Intent(Intent.ACTION_VIEW, webUri).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -180,13 +199,13 @@ class DeviceController(private val context: Context) {
                 AgentExecutionResult(
                     actionName = "DOWNLOAD_APP",
                     isSuccess = true,
-                    message = "Opened Play Store web download link for $displayName"
+                    message = "Opening Play Store web link for $displayName"
                 )
             } catch (err: Exception) {
                 AgentExecutionResult(
                     actionName = "DOWNLOAD_APP",
                     isSuccess = false,
-                    message = "Failed to launch Play Store: ${err.message}"
+                    message = "Could not open Play Store: ${err.message}"
                 )
             }
         }
