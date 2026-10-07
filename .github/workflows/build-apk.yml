@@ -17,6 +17,8 @@ jobs:
   build:
     name: Build & Export APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -58,3 +60,17 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
           if-no-files-found: error
+
+      - name: Publish Direct APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0
+          name: "Maria AI v1.0 - Download APK"
+          body: |
+            ### ⚡ Maria AI - Autonomous Android Agent APK
+            Aap yahan se direct APK download kar sakte hain:
+            - **Download:** Niche diye gaye `app-debug.apk` file par click karein.
+          files: app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
