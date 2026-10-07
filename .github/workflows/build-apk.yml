@@ -36,13 +36,16 @@ jobs:
       - name: Make Gradlew Executable & Restore Environment
         run: |
           chmod +x gradlew
-          if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
-            echo "Restored debug.keystore successfully"
-          fi
           if [ ! -f .env ]; then
             cp .env.example .env
-            echo "Initialized .env from .env.example"
+            echo "Created .env"
+          fi
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || true
+          fi
+          if [ ! -f debug.keystore ] || [ ! -s debug.keystore ]; then
+            echo "Generating fresh debug.keystore..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
       - name: Build Debug APK
